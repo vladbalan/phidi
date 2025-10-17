@@ -11,66 +11,8 @@ Phidi is a **modular data extraction pipeline** with two main use cases:
 
 ## System Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         INPUT LAYER                              │
-│  CSV Files: websites, company names                              │
-│  (data/inputs/*.csv)                                             │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      CRAWLER LAYER                               │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌───────────┐ │
-│  │  Python    │  │   Node.js  │  │   Scrapy   │  │  Scrapy   │ │
-│  │  (httpx)   │  │  (undici)  │  │  (native)  │  │   Lite    │ │
-│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘  └─────┬─────┘ │
-│        │                │                │                │       │
-│        └────────────────┴────────────────┴────────────────┘       │
-│                         │                                         │
-│              ┌──────────┴──────────┐                             │
-│              │  Shared Components  │                             │
-│              │  • phone_utils      │                             │
-│              │  • social_utils     │                             │
-│              │  • normalize_utils  │                             │
-│              │  • robots_parser    │                             │
-│              │  • user_agent_rot.  │                             │
-│              │  • config_loader    │                             │
-│              └──────────┬──────────┘                             │
-└────────────────────────┼────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      OUTPUT LAYER                                │
-│  NDJSON Files: extracted data (phones, social, address)          │
-│  (data/outputs/*.ndjson)                                         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-         ┌───────────────┴───────────────┐
-         │                               │
-         ▼                               ▼
-┌──────────────────┐          ┌──────────────────────┐
-│  EVALUATION      │          │  ETL PIPELINE        │
-│  • Compare       │          │  (Optional Full)     │
-│  • Benchmark     │          │                      │
-│  • Reports       │          │  1. Normalize        │
-└──────────────────┘          │  2. Merge            │
-                              │  3. Dedupe           │
-                              │  4. Load ES          │
-                              └──────────┬───────────┘
-                                         │
-                                         ▼
-                              ┌──────────────────────┐
-                              │  ELASTICSEARCH       │
-                              │  (Index: companies)  │
-                              └──────────┬───────────┘
-                                         │
-                                         ▼
-                              ┌──────────────────────┐
-                              │  MATCHING API        │
-                              │  (FastAPI on :8000)  │
-                              └──────────────────────┘
-```
+![Architecture Diagram](diagrams/architecture.png)
+
 
 ## Components
 
