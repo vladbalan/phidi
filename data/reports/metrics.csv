@@ -1,0 +1,5 @@
+crawler,coverage,avg_response_time_ms,total_time_seconds,phone_fill_rate,social_fill_rate,address_fill_rate,total_datapoints
+python,0.0,,160,0.0,0.0,0.0,0
+node,0.0,,206,0.0,0.0,0.0,0
+scrapy,0.643,569,55,0.337,0.525,0.154,1052
+scrapy-lite,0.642,512,53,0.807,0.507,0.426,11503

@@ -1,0 +1,154 @@
+# ------------------------------
+# OS / Editor junk
+# ------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+Icon\r
+.idea/
+.vscode/
+.history/
+.classpath
+.project
+*.iml
+
+# ------------------------------
+# Environment & secrets
+# ------------------------------
+.env
+.env.*
+.envrc
+.direnv/
+secrets.yaml
+# Keep examples
+!*.example
+
+# ------------------------------
+# Python
+# ------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Packaging
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+*.egg
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+*.cache
+.benchmarks/
+.nyc_output/
+lcov-report/
+lcov.info
+
+# Type checking / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ------------------------------
+# Node.js
+# ------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
+
+# Common JS/TS build outputs
+*.map
+*.cache
+
+# ------------------------------
+# Data, logs, and generated artifacts
+# ------------------------------
+# Keep input samples, ignore outputs and staging
+data/outputs/
+data/staging/
+
+# Logs
+logs/
+*.log
+
+# Reports: keep committed reports; adjust locally if needed
+# data/reports/*.json
+# data/reports/*.csv
+
+# Spark / Hadoop temp and metadata
+.sparkStaging/
+metastore_db/
+derby.log
+**/_SUCCESS
+spark-warehouse/
+.java_pid*
+
+# ------------------------------
+# Docker / Compose
+# ------------------------------
+docker-compose.override.yml
+.docker/
+
+# ------------------------------
+# Helm / Kubernetes
+# ------------------------------
+# Ignore packaged chart archives; keep chart sources
+infra/helm/**/*.tgz
+
+# ------------------------------
+# Terraform (infra/terraform)
+# ------------------------------
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+# Keep lock file in VCS
+!*.terraform.lock.hcl
+
+# ------------------------------
+# Misc caches
+# ------------------------------
+.cache/
+.local/
+*.pid
+*.tmp
+*.temp
+

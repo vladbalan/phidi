@@ -1,0 +1,14 @@
+# Aggressive Profile - Speed-Focused
+# High concurrency, short timeouts for maximum throughput
+# Use case: Benchmarking raw speed, large-scale crawls where some data loss is acceptable
+
+name: "aggressive"
+description: "Speed-focused: high concurrency, short timeouts, minimal retries"
+
+http:
+  timeout_seconds: 8
+  concurrency: 100
+
+retry:
+  max_attempts: 2
+  backoff_base_seconds: 0.3

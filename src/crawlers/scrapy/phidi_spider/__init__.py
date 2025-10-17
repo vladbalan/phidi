@@ -1,0 +1,1 @@
+"""Phidi Scrapy spider package."""

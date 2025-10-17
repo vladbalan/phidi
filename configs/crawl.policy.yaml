@@ -1,0 +1,118 @@
+# Crawler Configuration
+# Centralized settings for Python and Node crawlers
+# Edit these values to tune performance vs. coverage trade-offs
+
+# HTTP Request Settings
+http:
+  timeout_seconds: 8           # Per-request timeout (default: 12s)
+                                # Lower = faster but more failures
+                                # Higher = better coverage but slower
+                                # Recommended: 10-15s for production
+  
+  concurrency: 100              # Parallel requests (default: 50)
+                                # Lower = more respectful, less blocking
+                                # Higher = faster but more rate limiting
+                                # Recommended: 30-100 for production
+                                # WARNING: >100 often triggers anti-bot measures
+  
+  user_agent: "Mozilla/5.0 (compatible; SpaceCrawler/1.0)"
+                                # User-Agent header for requests (used if rotation disabled)
+  
+  follow_redirects: true        # Follow HTTP redirects (301, 302)
+  max_redirects: 5              # Maximum redirect chain length
+
+# User-Agent Rotation (Mimics Diverse Traffic)
+user_agent_rotation:
+  enabled: true                 # Enable random user-agent rotation per request
+                                # When enabled, rotates through realistic browser UAs
+                                # When disabled, uses single user_agent from http config
+  identify: true                # Append crawler identification for transparency
+                                # Example: "... (SpaceCrawler/1.0)"
+                                # Recommended: true for ethical crawling
+
+# Retry Policy (Exponential Backoff)
+retry:
+  max_attempts: 1               # Total attempts per URL (default: 3)
+                                # First attempt + 2 retries
+  
+  backoff_base_seconds: 0.5     # Base delay for exponential backoff
+                                # Delay = base * (2 ^ attempt) + jitter
+                                # attempt=0: 0.5s, attempt=1: 1.0s, attempt=2: 2.0s
+  
+  jitter_max_seconds: 0.5       # Random jitter to avoid thundering herd
+  
+  retry_on:                     # Which errors trigger retries
+    - timeout
+    - connection_reset
+    - connection_refused
+    - temporary_error
+  
+  skip_retry_on:                # Which errors skip retries (terminal)
+    - dns_error                 # Domain doesn't exist
+    - invalid_domain            # Malformed domain
+
+# Protocol Fallback
+protocol:
+  try_https_first: true         # Always try HTTPS before HTTP
+  fallback_to_http: true        # If HTTPS fails with SSL error, try HTTP
+                                # Many small businesses don't have SSL certs
+  
+  http_fallback_on:             # Trigger HTTP fallback on these errors
+    - ssl_error
+    - certificate_error
+    - handshake_error
+
+# Performance Tuning Presets
+# Uncomment one of these sections to override settings above
+
+# presets:
+#   fast:                       # Prioritize speed over coverage
+#     concurrency: 100
+#     timeout_seconds: 8
+#     max_attempts: 2
+#   
+#   balanced:                   # Current defaults (best for most cases)
+#     concurrency: 50
+#     timeout_seconds: 12
+#     max_attempts: 3
+#   
+#   thorough:                   # Prioritize coverage over speed
+#     concurrency: 30
+#     timeout_seconds: 20
+#     max_attempts: 5
+
+# Robots.txt Compliance
+robots:
+  enabled: false                # Enable robots.txt checking (recommended)
+  cache_ttl_seconds: 86400      # Cache robots.txt for 24 hours
+  respect_crawl_delay: true     # Respect crawl-delay directive
+  fail_open: true               # Allow crawling if robots.txt fetch fails
+                                # (Recommended: avoid blocking legitimate crawls)
+
+# Rate Limiting (Optional - not yet implemented)
+rate_limit:
+  enabled: false                # Enable rate limiting per domain
+  requests_per_second: 10       # Max requests per second per domain
+  burst_size: 20                # Allow bursts up to this size
+
+# Domain Filtering (Optional - not yet implemented)
+domains:
+  exclude_patterns: []          # Skip domains matching these patterns
+    # - "*.gov"                 # Example: skip government sites
+    # - "*.edu"                 # Example: skip educational sites
+  
+  include_only: []              # Only crawl domains matching these patterns
+                                # Empty = crawl all domains
+
+# Output Settings
+output:
+  format: "ndjson"              # Output format (ndjson only for now)
+  include_errors: true          # Include failed attempts in output
+  include_redirects: true       # Track redirect chains in output
+
+# Monitoring & Debugging
+logging:
+  level: "info"                 # Log level: debug, info, warning, error
+  show_progress: true           # Show batch progress
+  show_fallbacks: true          # Log when browser fallback is used
+  colorize: true                # Use colored output (auto-detect TTY)

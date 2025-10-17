@@ -1,0 +1,8 @@
+domain_weight: 0.40
+name_weight: 0.35
+phone_weight: 0.15
+social_weight: 0.10
+
+# Minimum confidence score to return a match (0.0-1.0)
+# Matches below this threshold are rejected as low quality
+min_confidence_threshold: 0.3

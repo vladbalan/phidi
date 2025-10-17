@@ -1,0 +1,15 @@
+# Balanced Profile - Production Default
+# Recommended settings for most production use cases
+# Good balance between speed and coverage
+
+name: "balanced"
+description: "Production default: balanced speed and coverage"
+
+http:
+  timeout_seconds: 12
+  concurrency: 50
+
+retry:
+  max_attempts: 3
+  backoff_base_seconds: 0.5
+  jitter_max_seconds: 0.5

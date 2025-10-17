@@ -1,0 +1,4 @@
+# Scrapy crawler dependencies
+scrapy>=2.11,<3.0
+# YAML support (reuses existing config)
+pyyaml>=6.0,<7.0

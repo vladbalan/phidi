@@ -1,0 +1,35 @@
+{
+	"settings": {
+		"number_of_shards": 1,
+		"number_of_replicas": 0,
+		"analysis": {
+			"analyzer": {
+				"folding": {
+					"tokenizer": "standard",
+					"filter": ["lowercase", "asciifolding"]
+				}
+			}
+		}
+	},
+	"mappings": {
+		"dynamic": true,
+		"properties": {
+			"domain": { "type": "keyword" },
+			"company_name": { "type": "text", "analyzer": "folding", "fields": { "raw": { "type": "keyword" } } },
+			"phones": { "type": "keyword" },
+			"facebook": { "type": "keyword" },
+			"linkedin": { "type": "keyword" },
+			"twitter": { "type": "keyword" },
+			"instagram": { "type": "keyword" },
+			"address": {
+				"type": "object",
+				"properties": {
+					"street": { "type": "text", "analyzer": "folding" },
+					"city": { "type": "keyword" },
+					"state": { "type": "keyword" },
+					"zip": { "type": "keyword" }
+				}
+			}
+		}
+	}
+}

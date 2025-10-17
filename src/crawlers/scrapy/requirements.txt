@@ -1,0 +1,4 @@
+# Scrapy crawler dependencies
+scrapy>=2.11,<3.0
+w3lib>=2.1.0  # URL and HTML utilities used by Scrapy
+itemloaders>=1.0.0  # Item loading utilities (moved out of Scrapy core)

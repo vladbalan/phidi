@@ -1,0 +1,15 @@
+# Conservative Profile - Coverage-Focused
+# Low concurrency, long timeouts for maximum data quality
+# Use case: High-value targets, comprehensive data collection, respectful crawling
+
+name: "conservative"
+description: "Coverage-focused: low concurrency, long timeouts, more retries"
+
+http:
+  timeout_seconds: 20
+  concurrency: 30
+
+retry:
+  max_attempts: 5
+  backoff_base_seconds: 1.0
+  jitter_max_seconds: 1.0

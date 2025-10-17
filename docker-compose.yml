@@ -1,0 +1,70 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: elasticsearch
+    environment:
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=false"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    environment:
+      - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    image: phidi-api:latest
+    container_name: phidi
+    ports:
+      - "8000:8000"
+    environment:
+      - ES_URL=http://elasticsearch:9200
+      - ES_INDEX=${ES_INDEX:-companies_v1}
+      - ES_ALIAS=${ES_ALIAS:-companies}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Shared service for running tests and workflows (reuses api image)
+  runner:
+    image: phidi-api:latest
+    environment:
+      - ES_URL=http://elasticsearch:9200
+      - ES_INDEX=${ES_INDEX:-companies_v1}
+      - ES_ALIAS=${ES_ALIAS:-companies}
+      - IN_DOCKER=1
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./schemas:/app/schemas
+      - ./Makefile:/app/Makefile
+    profiles:
+      - tools
+
+volumes:
+  esdata:
+    driver: local
