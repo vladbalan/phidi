@@ -72,6 +72,9 @@ Results help identify the optimal crawler for your use case (speed vs. politenes
 
 ![Architecture Diagram](docs/diagrams/architecture.png)
 
+See [Architecture Documentation](docs/ARCHITECTURE.md) for a detailed overview.
+
+
 ### Data Extraction Pipeline
 ```
 Input (CSV) → Crawler → Extraction → Output (NDJSON)
