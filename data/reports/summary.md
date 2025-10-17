@@ -1,45 +1,45 @@
 # Crawler Comparison Report
 
 ## Coverage
-- Python: 0/1001 sites (0.0%)
-- Node: 0/1001 sites (0.0%)
-- Scrapy: 644/1001 sites (64.3%)
-- Scrapy-lite: 643/1001 sites (64.2%)
-**Winner: Scrapy** (+1 sites)
+- Scrapy-lite-aggressive: 650/1001 sites (64.9%)
+- Scrapy-aggressive: 650/1001 sites (64.9%)
+- Python-aggressive: 653/1001 sites (65.2%)
+- Node-aggressive: 690/1001 sites (68.9%)
+**Winner: Node-aggressive** (+37 sites)
 
 ## Speed
 ### Total Crawl Time
-- Python: 2m 39s
-- Node: 3m 25s
-- Scrapy: 0m 55s
-- Scrapy-lite: 0m 52s
-**Winner: Scrapy-lite** (-153s, 74% faster)
+- Scrapy-lite-aggressive: 1m 18s
+- Scrapy-aggressive: 1m 5s
+- Python-aggressive: 5m 18s
+- Node-aggressive: 6m 50s
+**Winner: Scrapy-aggressive** (-345s, 84% faster)
 
 ### Avg Response Time (per request)
-- Python: -
-- Node: -
-- Scrapy: 569ms
-- Scrapy-lite: 512ms
-**Winner: Scrapy-lite** (-57ms, 10% faster)
+- Scrapy-lite-aggressive: 774ms
+- Scrapy-aggressive: 536ms
+- Python-aggressive: 1188ms
+- Node-aggressive: 1352ms
+**Winner: Scrapy-aggressive** (-816ms, 60% faster)
 
 ## Data Quality
-- Python: 0.0 datapoints/site
-- Node: 0.0 datapoints/site
-- Scrapy: 1.6 datapoints/site
-- Scrapy-lite: 17.9 datapoints/site
-**Winner: Scrapy-lite** (+16.3 datapoints)
+- Scrapy-lite-aggressive: 17.9 datapoints/site
+- Scrapy-aggressive: 1.6 datapoints/site
+- Python-aggressive: 17.7 datapoints/site
+- Node-aggressive: 6.4 datapoints/site
+**Winner: Scrapy-lite-aggressive** (+0.2 datapoints)
 
 ## Final Scores
 *Formula: Score = 0.6 × Coverage + 0.4 × Quality*
 
 *Quality = avg(phone_fill_rate, social_fill_rate, address_fill_rate)*
 
-- **Scrapy-lite**: 0.617452 (coverage=0.642, quality=0.580)
-- **Scrapy**: 0.521418 (coverage=0.643, quality=0.339)
-- **Python**: 0.000000 (coverage=0.000, quality=0.000)
-- **Node**: 0.000000 (coverage=0.000, quality=0.000)
+- **Scrapy-lite-aggressive**: 0.621200 (coverage=0.649, quality=0.579)
+- **Python-aggressive**: 0.619688 (coverage=0.652, quality=0.571)
+- **Node-aggressive**: 0.532427 (coverage=0.689, quality=0.297)
+- **Scrapy-aggressive**: 0.524174 (coverage=0.649, quality=0.336)
 
 ## Recommendation
-**Use Scrapy-lite crawler** (score: 0.617452)
-This crawler provides the best balance of coverage (64.2%) and data quality.
-Speed difference is acceptable.
+**Use Scrapy-lite-aggressive crawler** (score: 0.621200)
+This crawler provides the best balance of coverage (64.9%) and data quality.
+Note: large speed difference.

@@ -1,0 +1,13 @@
+{
+  "total_queries": 33,
+  "matches_found": 28,
+  "match_rate": 0.8484848484848485,
+  "high_confidence_matches": 1,
+  "medium_confidence_matches": 11,
+  "low_confidence_matches": 16,
+  "no_matches": 5,
+  "avg_confidence": 0.5294217070955719,
+  "avg_response_time_ms": 40.48,
+  "total_time_ms": 143.4,
+  "throughput_req_per_sec": 230.13
+}
