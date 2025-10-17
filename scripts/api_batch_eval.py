@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import csv
 import json
 import os
@@ -13,6 +14,7 @@ from urllib.request import Request, urlopen
 
 
 DEFAULT_API_URL = os.getenv("API_URL", "http://localhost:8000")
+DEFAULT_CONCURRENCY = 10
 
 
 def _http_get(url: str, timeout: float = 5.0) -> tuple[int, bytes]:
@@ -100,7 +102,7 @@ def read_input_csv(path: str) -> Iterable[InputRow]:
         reader = csv.DictReader(f)
         if not reader.fieldnames:
             return
-        mapping = _build_header_mapping(reader.fieldnames)
+        mapping = _build_header_mapping(list(reader.fieldnames))
         missing = [k for k in ("company_name", "website", "phone_number", "facebook_url") if k not in mapping]
         if missing:
             print(f"[API-BATCH][INFO] Using best-effort header mapping. Missing canonical keys: {missing}")
@@ -142,6 +144,241 @@ def health_check(api_url: str, retries: int = 15, delay: float = 0.3) -> None:
     if last_err is not None:
         raise SystemExit(f"[API-BATCH] Health check failed for {url}: {last_err}")
     raise SystemExit(f"[API-BATCH] Health check failed for {url} (status != 200)")
+
+
+# Async HTTP client implementation
+try:
+    import aiohttp  # type: ignore
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    AIOHTTP_AVAILABLE = False
+
+
+@dataclass
+class MatchResult:
+    """Result of a single match request."""
+    input_company: str
+    input_website: str
+    matched: bool
+    confidence: float
+    matched_company: str
+    matched_domain: str
+    response_time_ms: float
+    error: Optional[str] = None
+
+
+async def _async_post_match(
+    session: Any,
+    api_url: str,
+    payload: Dict[str, Any],
+    timeout: float,
+) -> Tuple[bool, float, Optional[Dict[str, Any]], float, Optional[str]]:
+    """Async POST to /match endpoint.
+    
+    Returns: (matched, confidence, company_data, response_time_ms, error)
+    """
+    url = f"{api_url}/match"
+    t0 = time.perf_counter()
+    
+    try:
+        async with session.post(url, json=payload, timeout=timeout) as resp:
+            dt_ms = (time.perf_counter() - t0) * 1000.0
+            data = await resp.json()
+            
+            matched = bool(data.get("match_found", False))
+            confidence = float(data.get("confidence", 0.0) or 0.0)
+            company = data.get("company")
+            
+            return matched, confidence, company, dt_ms, None
+            
+    except asyncio.TimeoutError:
+        dt_ms = (time.perf_counter() - t0) * 1000.0
+        return False, 0.0, None, dt_ms, "timeout"
+    except Exception as e:
+        dt_ms = (time.perf_counter() - t0) * 1000.0
+        return False, 0.0, None, dt_ms, str(e)
+
+
+async def _process_batch_async(
+    rows: List[InputRow],
+    api_url: str,
+    timeout: float,
+    concurrency: int,
+) -> List[MatchResult]:
+    """Process batch of rows with controlled concurrency."""
+    if not AIOHTTP_AVAILABLE:
+        raise RuntimeError("aiohttp is required for async mode. Install with: pip install aiohttp")
+    
+    semaphore = asyncio.Semaphore(concurrency)
+    results: List[MatchResult] = []
+    
+    async def process_one(row: InputRow, session: Any) -> MatchResult:
+        """Process single row with semaphore control."""
+        async with semaphore:
+            payload = {
+                "company_name": row.company_name,
+                "website": row.website,
+                "phone_number": row.phone_number,
+                "facebook_url": row.facebook_url,
+            }
+            
+            matched, confidence, company, dt_ms, error = await _async_post_match(
+                session, api_url, payload, timeout
+            )
+            
+            matched_company = ""
+            matched_domain = ""
+            if company:
+                matched_company = company.get("company_name") or company.get("name") or ""
+                matched_domain = company.get("domain") or ""
+            
+            return MatchResult(
+                input_company=row.company_name,
+                input_website=row.website,
+                matched=matched,
+                confidence=confidence,
+                matched_company=matched_company,
+                matched_domain=matched_domain,
+                response_time_ms=dt_ms,
+                error=error,
+            )
+    
+    # Create session with connection pooling
+    timeout_obj = aiohttp.ClientTimeout(total=timeout)
+    connector = aiohttp.TCPConnector(limit=concurrency, limit_per_host=concurrency)
+    
+    async with aiohttp.ClientSession(timeout=timeout_obj, connector=connector) as session:
+        tasks = [process_one(row, session) for row in rows]
+        results = await asyncio.gather(*tasks)
+    
+    return results
+
+
+async def run_async(
+    input_csv: str,
+    out_csv: str,
+    out_summary: str,
+    api_url: str,
+    limit: Optional[int] = None,
+    timeout: float = 10.0,
+    concurrency: int = DEFAULT_CONCURRENCY,
+    out_report: Optional[str] = None,
+) -> None:
+    """Async implementation of batch evaluation."""
+    print(f"[API-BATCH] API_URL: {api_url}")
+    print(f"[API-BATCH] Concurrency: {concurrency}")
+    print(f"[API-BATCH] Reading: {input_csv}")
+    
+    # Health check (sync)
+    health_check(api_url)
+    
+    # Read all rows
+    rows = list(read_input_csv(input_csv))
+    if limit:
+        rows = rows[:limit]
+    
+    total = len(rows)
+    print(f"[API-BATCH] Processing {total} rows...")
+    
+    # Process batch async
+    t_start = time.perf_counter()
+    results = await _process_batch_async(rows, api_url, timeout, concurrency)
+    t_total = (time.perf_counter() - t_start) * 1000.0
+    
+    # Aggregate metrics
+    matches_found = sum(1 for r in results if r.matched)
+    high = sum(1 for r in results if r.matched and r.confidence >= 0.9)
+    medium = sum(1 for r in results if r.matched and 0.7 <= r.confidence < 0.9)
+    low = sum(1 for r in results if r.matched and r.confidence < 0.7)
+    no_matches = total - matches_found
+    sum_conf = sum(r.confidence for r in results)
+    avg_conf = sum_conf / total if total else 0.0
+    
+    resp_times_ms = [r.response_time_ms for r in results]
+    avg_ms = sum(resp_times_ms) / len(resp_times_ms) if resp_times_ms else 0.0
+    
+    # Convert to output format
+    results_rows = [
+        {
+            "input_company": r.input_company,
+            "input_website": r.input_website,
+            "matched": str(r.matched).lower(),
+            "confidence": f"{r.confidence:.4f}",
+            "matched_company": r.matched_company,
+            "matched_domain": r.matched_domain,
+        }
+        for r in results
+    ]
+    
+    # Write outputs
+    ensure_dir(out_csv)
+    ensure_dir(out_summary)
+    
+    with open(out_csv, "w", encoding="utf-8", newline="") as f:
+        fieldnames = [
+            "input_company",
+            "input_website",
+            "matched",
+            "confidence",
+            "matched_company",
+            "matched_domain",
+        ]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(results_rows)
+    
+    summary = {
+        "total_queries": total,
+        "matches_found": matches_found,
+        "match_rate": (matches_found / total) if total else 0.0,
+        "high_confidence_matches": high,
+        "medium_confidence_matches": medium,
+        "low_confidence_matches": low,
+        "no_matches": no_matches,
+        "avg_confidence": avg_conf,
+        "avg_response_time_ms": round(avg_ms, 2),
+        "total_time_ms": round(t_total, 2),
+        "throughput_req_per_sec": round(total / (t_total / 1000.0), 2) if t_total > 0 else 0.0,
+    }
+    
+    with open(out_summary, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2)
+    
+    # Write markdown report if requested
+    if out_report:
+        write_markdown_report(
+            out_path=out_report,
+            summary=summary,
+            results_rows=results_rows,
+            resp_times_ms=resp_times_ms,
+            input_csv=input_csv,
+            api_url=api_url,
+        )
+    
+    # Log errors if any
+    errors = [r for r in results if r.error]
+    if errors:
+        print(f"[API-BATCH] Warnings: {len(errors)} requests had errors")
+        for r in errors[:3]:  # Show first 3
+            print(f"  - {r.input_company}: {r.error}")
+    
+    print("[API-BATCH] Done.")
+    print(f"[API-BATCH] Total requests: {total}")
+    print(f"[API-BATCH] Total time:     {t_total:.0f} ms")
+    print(f"[API-BATCH] Throughput:     {summary['throughput_req_per_sec']:.1f} req/s")
+    print(f"[API-BATCH] Avg per request: {avg_ms:.1f} ms")
+    print(f"[API-BATCH] Results CSV:    {out_csv}")
+    print(f"[API-BATCH] Summary JSON:  {out_summary}")
+    if out_report:
+        print(f"[API-BATCH] Report MD:     {out_report}")
+    print(
+        f"[API-BATCH] Matches: {matches_found}/{total} "
+        f"({summary['match_rate']:.3f}), avg_conf={avg_conf:.4f}, avg_ms={avg_ms:.1f}"
+    )
+    
+    # Print formatted report to terminal if generated
+    if out_report:
+        _print_formatted_report(summary, results_rows, resp_times_ms)
 
 
 def categorize_confidence(conf: float) -> str:
@@ -514,6 +751,9 @@ def run(
         )
 
     print("[API-BATCH] Done.")
+    print(f"[API-BATCH] Total requests: {total}")
+    print(f"[API-BATCH] Total time:     {sum(resp_times_ms):.0f} ms")
+    print(f"[API-BATCH] Avg per request: {avg_ms:.1f} ms")
     print(f"[API-BATCH] Results CSV:    {out_csv}")
     print(f"[API-BATCH] Summary JSON:  {out_summary}")
     if out_report:
@@ -556,22 +796,57 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p.add_argument("--api-url", default=DEFAULT_API_URL, help="Base URL of the API (or set API_URL)")
     p.add_argument("--limit", type=int, default=None, help="Process only first N rows (debug)")
     p.add_argument("--timeout", type=float, default=10.0, help="Request timeout in seconds")
-    p.add_argument("--pause", type=float, default=0.0, help="Delay between requests in seconds")
+    p.add_argument("--pause", type=float, default=0.0, help="Delay between requests (sync mode only)")
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=DEFAULT_CONCURRENCY,
+        help="Max concurrent requests (async mode only)",
+    )
+    p.add_argument(
+        "--sync",
+        action="store_true",
+        help="Use synchronous mode (default: async if aiohttp available)",
+    )
     return p.parse_args(argv)
 
 
 def main(argv: Optional[List[str]] = None) -> None:
     args = parse_args(sys.argv[1:] if argv is None else argv)
-    run(
-        input_csv=args.input,
-        out_csv=args.csv_out,
-        out_summary=args.summary_out,
-        api_url=args.api_url,
-        limit=args.limit,
-        timeout=args.timeout,
-        pause=args.pause,
-        out_report=args.report_out,
-    )
+    
+    # Determine execution mode
+    use_async = not args.sync and AIOHTTP_AVAILABLE
+    
+    if use_async:
+        # Run async version
+        asyncio.run(
+            run_async(
+                input_csv=args.input,
+                out_csv=args.csv_out,
+                out_summary=args.summary_out,
+                api_url=args.api_url,
+                limit=args.limit,
+                timeout=args.timeout,
+                concurrency=args.concurrency,
+                out_report=args.report_out,
+            )
+        )
+    else:
+        # Run sync version (fallback)
+        if not args.sync and not AIOHTTP_AVAILABLE:
+            print("[API-BATCH] aiohttp not available, falling back to sync mode")
+            print("[API-BATCH] Install aiohttp for better performance: pip install aiohttp")
+        
+        run(
+            input_csv=args.input,
+            out_csv=args.csv_out,
+            out_summary=args.summary_out,
+            api_url=args.api_url,
+            limit=args.limit,
+            timeout=args.timeout,
+            pause=args.pause,
+            out_report=args.report_out,
+        )
 
 
 if __name__ == "__main__":
