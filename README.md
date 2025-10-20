@@ -2,6 +2,12 @@
 
 An objective comparison framework for web crawling implementations. Benchmarks Python (httpx), Node.js (undici), Scrapy, and Scrapy-lite across performance profiles to identify the optimal crawler for company data extraction.
 
+## Overview Video
+
+[Watch the overview on Loom](https://www.loom.com/share/95a8db9c6ae342048ec7892493ccbe66)
+
+[![Overview Video Thumbnail](docs/video-thumbnail.png)](https://www.loom.com/share/95a8db9c6ae342048ec7892493ccbe66)
+
 ## Why This Project?
 
 **Core Question**: Which web crawler performs best for extracting structured data from websites?
