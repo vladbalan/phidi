@@ -630,8 +630,9 @@ ifeq ($(IN_DOCKER),1)
 	@$(MAKE) venv
 	@$(MAKE) api-deps
 	@echo "[API] Smoke test..."
-	@API_URL=http://localhost:8000 "$(PY)" scripts/api_smoke.py
+	@API_URL=$(API_URL) "$(PY)" scripts/api_smoke.py
 else
+	@docker compose up -d api
 	@docker compose run --rm runner make $@
 endif
 
