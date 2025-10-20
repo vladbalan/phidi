@@ -502,6 +502,7 @@ open http://localhost:5601
 
 ## Related Documentation
 
+- **[Readme](../README.md)**: Project overview and quickstart
 - **[API Reference](API.md)**: REST API endpoints and examples
 - **[Configuration](CRAWLER_CONFIGURATION.md)**: Profile system and tuning
 - **[Scalability](SCALABILITY.md)**: Billion-scale deployment
